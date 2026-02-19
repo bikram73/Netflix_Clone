@@ -6,13 +6,17 @@ const { Pool } = require('pg');
 const bcrypt = require('bcrypt');
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5001;
 const API_KEY = "892e335b";
 const BASE_URL = "https://www.omdbapi.com/";
 
 // --- Database Configuration (Aiven) ---
 const pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
+    host: process.env.DB_HOST,
+    port: process.env.DB_PORT,
+    database: process.env.DB_NAME,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
     ssl: {
         rejectUnauthorized: false
     }
@@ -43,7 +47,7 @@ app.use((req, res, next) => {
 // --- Authentication Routes ---
 
 // Sign Up Endpoint
-app.post('/api/signup', async (req, res) => {
+app.post(['/api/signup', '/signup'], async (req, res) => {
     const { userid, username, password, email, phone } = req.body;
     
     try {
@@ -71,7 +75,7 @@ app.post('/api/signup', async (req, res) => {
 });
 
 // Sign In Endpoint
-app.post('/api/login', async (req, res) => {
+app.post(['/api/login', '/login'], async (req, res) => {
     const { email, password } = req.body;
     try {
         // 1. Find user
@@ -97,7 +101,11 @@ app.post('/api/login', async (req, res) => {
 });
 
 // Health Check Endpoint
-app.get(['/', '/api'], (req, res) => {
+app.get('/api', (req, res) => {
+    res.json({ status: "Backend is running", key_configured: true });
+});
+
+app.get('/', (req, res) => {
     res.json({ status: "Backend is running", key_configured: true });
 });
 

@@ -4,7 +4,7 @@ import { FaSearch, FaBell, FaPlay, FaPlus, FaCheck, FaTimes } from "react-icons/
 import "./App.css";
 
 // Use localhost for development, otherwise use relative path for production (Vercel)
-const API_BASE_URL = window.location.hostname === "localhost" ? "http://localhost:5000" : "";
+const API_BASE_URL = window.location.hostname === "localhost" ? "http://localhost:5001" : "";
 
 // --- Context for Global State (My List) ---
 const GlobalContext = createContext();
