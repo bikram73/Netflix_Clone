@@ -10,10 +10,15 @@ let pool;
 
 function getPool() {
     if (!pool) {
+        // Force NODE_TLS_REJECT_UNAUTHORIZED to 0 before creating pool
+        process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+        
         let poolConfig;
         if (process.env.DATABASE_URL) {
+            // Remove sslmode from connection string if present
+            const cleanUrl = process.env.DATABASE_URL.split('?')[0];
             poolConfig = {
-                connectionString: process.env.DATABASE_URL,
+                connectionString: cleanUrl,
                 ssl: {
                     rejectUnauthorized: false
                 }
@@ -21,7 +26,7 @@ function getPool() {
         } else {
             poolConfig = {
                 host: process.env.DB_HOST,
-                port: process.env.DB_PORT,
+                port: parseInt(process.env.DB_PORT || '5432'),
                 database: process.env.DB_NAME,
                 user: process.env.DB_USER,
                 password: process.env.DB_PASSWORD,
@@ -30,6 +35,7 @@ function getPool() {
                 }
             };
         }
+        
         pool = new Pool(poolConfig);
         
         // Initialize Database Table
