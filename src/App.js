@@ -300,14 +300,29 @@ const LoginScreen = ({ onSignIn, onSwitchToSignup }) => {
 };
 
 const SignupScreen = ({ onSwitchToLogin }) => {
-  const [formData, setFormData] = useState({ userid: "", username: "", password: "", email: "", phone: "" });
+  const [formData, setFormData] = useState({ username: "", password: "", email: "", phone: "" });
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [generatedUserId, setGeneratedUserId] = useState("");
 
   const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError("");
+    setSuccess("");
+    
+    // Client-side validation
+    if (formData.password.length < 10) {
+      setError("Password must be at least 10 characters long");
+      return;
+    }
+    
+    if (!/^\d{10}$/.test(formData.phone)) {
+      setError("Phone number must be exactly 10 digits");
+      return;
+    }
+    
     try {
       const response = await fetch(`${API_BASE_URL}/api/signup`, {
         method: "POST",
@@ -316,8 +331,9 @@ const SignupScreen = ({ onSwitchToLogin }) => {
       });
       const data = await response.json();
       if (response.ok) {
-        setSuccess("Account created! Please sign in.");
-        setTimeout(onSwitchToLogin, 2000);
+        setGeneratedUserId(data.user.userid);
+        setSuccess(`Account created successfully! Your User ID: ${data.user.userid}`);
+        setTimeout(onSwitchToLogin, 4000);
       } else {
         setError(data.error || "Signup failed");
       }
@@ -332,14 +348,53 @@ const SignupScreen = ({ onSwitchToLogin }) => {
       <div className="z-10 bg-black/75 p-12 rounded max-w-md w-full text-white">
         <h1 className="text-3xl font-bold mb-6">Sign Up</h1>
         {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
-        {success && <p className="text-green-500 text-sm mb-4">{success}</p>}
+        {success && (
+          <div className="bg-green-600/20 border border-green-500 text-green-400 text-sm p-3 rounded mb-4">
+            <p className="font-bold">{success}</p>
+            <p className="text-xs mt-1">Please save your User ID for future reference.</p>
+          </div>
+        )}
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <input name="userid" type="text" placeholder="User ID" className="p-3 rounded bg-[#333] outline-none" onChange={handleChange} required />
-          <input name="username" type="text" placeholder="User Name" className="p-3 rounded bg-[#333] outline-none" onChange={handleChange} required />
-          <input name="email" type="email" placeholder="Email" className="p-3 rounded bg-[#333] outline-none" onChange={handleChange} required />
-          <input name="password" type="password" placeholder="Password" className="p-3 rounded bg-[#333] outline-none" onChange={handleChange} required />
-          <input name="phone" type="text" placeholder="Phone" className="p-3 rounded bg-[#333] outline-none" onChange={handleChange} required />
-          <button type="submit" className="bg-netflix-red py-3 rounded font-bold mt-4">Sign Up</button>
+          <input 
+            name="username" 
+            type="text" 
+            placeholder="User Name" 
+            className="p-3 rounded bg-[#333] outline-none" 
+            onChange={handleChange} 
+            value={formData.username}
+            required 
+          />
+          <input 
+            name="email" 
+            type="email" 
+            placeholder="Email" 
+            className="p-3 rounded bg-[#333] outline-none" 
+            onChange={handleChange} 
+            value={formData.email}
+            required 
+          />
+          <input 
+            name="password" 
+            type="password" 
+            placeholder="Password (min 10 characters)" 
+            className="p-3 rounded bg-[#333] outline-none" 
+            onChange={handleChange} 
+            value={formData.password}
+            minLength="10"
+            required 
+          />
+          <input 
+            name="phone" 
+            type="tel" 
+            placeholder="Phone (10 digits)" 
+            className="p-3 rounded bg-[#333] outline-none" 
+            onChange={handleChange} 
+            value={formData.phone}
+            pattern="\d{10}"
+            maxLength="10"
+            required 
+          />
+          <button type="submit" className="bg-netflix-red py-3 rounded font-bold mt-4 hover:bg-red-700 transition">Sign Up</button>
         </form>
         <p className="text-gray-400 mt-4">
           Already have an account? <span className="text-white cursor-pointer hover:underline" onClick={onSwitchToLogin}>Sign in.</span>

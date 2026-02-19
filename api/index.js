@@ -41,12 +41,11 @@ function getPool() {
         // Initialize Database Table
         pool.query(`
             CREATE TABLE IF NOT EXISTS users (
-                id SERIAL PRIMARY KEY,
-                userid VARCHAR(255),
-                username VARCHAR(255),
+                userid VARCHAR(255) PRIMARY KEY,
+                username VARCHAR(255) NOT NULL,
                 email VARCHAR(255) UNIQUE NOT NULL,
                 password VARCHAR(255) NOT NULL,
-                phone VARCHAR(50)
+                phone VARCHAR(10) NOT NULL
             )
         `).catch(err => console.error("Database initialization error:", err));
     }
@@ -76,16 +75,35 @@ module.exports = async (req, res) => {
 
         // Sign Up Endpoint
         if (url.startsWith('/api/signup') && method === 'POST') {
-            const { userid, username, password, email, phone } = req.body;
+            const { username, password, email, phone } = req.body;
             
             try {
                 const dbPool = getPool();
                 
-                // Check if user exists
+                // Validate required fields
+                if (!username || !email || !password || !phone) {
+                    return res.status(400).json({ error: "All fields are required" });
+                }
+                
+                // Validate password length (minimum 10 characters)
+                if (password.length < 10) {
+                    return res.status(400).json({ error: "Password must be at least 10 characters long" });
+                }
+                
+                // Validate phone number (exactly 10 digits)
+                const phoneRegex = /^\d{10}$/;
+                if (!phoneRegex.test(phone)) {
+                    return res.status(400).json({ error: "Phone number must be exactly 10 digits" });
+                }
+                
+                // Check if email already exists
                 const userCheck = await dbPool.query("SELECT * FROM users WHERE email = $1", [email]);
                 if (userCheck.rows.length > 0) {
                     return res.status(400).json({ error: "User already exists with this email." });
                 }
+
+                // Generate unique userid (timestamp + random string)
+                const userid = 'USER' + Date.now() + Math.random().toString(36).substring(2, 9).toUpperCase();
 
                 // Encrypt password
                 const salt = await bcrypt.genSalt(10);
@@ -93,11 +111,14 @@ module.exports = async (req, res) => {
 
                 // Insert into DB
                 const newUser = await dbPool.query(
-                    "INSERT INTO users (userid, username, email, password, phone) VALUES ($1, $2, $3, $4, $5) RETURNING *",
+                    "INSERT INTO users (userid, username, email, password, phone) VALUES ($1, $2, $3, $4, $5) RETURNING userid, username, email, phone",
                     [userid, username, email, hashedPassword, phone]
                 );
 
-                return res.status(200).json({ message: "User created successfully", user: newUser.rows[0] });
+                return res.status(200).json({ 
+                    message: "User created successfully", 
+                    user: newUser.rows[0]
+                });
             } catch (err) {
                 console.error('[Signup Error]', err);
                 return res.status(500).json({ error: "Server error during signup", details: err.message });
@@ -128,7 +149,11 @@ module.exports = async (req, res) => {
                 // Login successful
                 return res.status(200).json({ 
                     message: "Login successful", 
-                    user: { id: user.id, username: user.username, email: user.email } 
+                    user: { 
+                        userid: user.userid, 
+                        username: user.username, 
+                        email: user.email 
+                    } 
                 });
             } catch (err) {
                 console.error('[Login Error]', err);
